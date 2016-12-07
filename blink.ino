@@ -1,8 +1,7 @@
 #include "constants.h"
 
 void blinkLED(int mode){
-  switch(mode){
-    case BLINK_INIT:
+  if (mode == BLINK_INIT) {
       digitalWrite(LED1,HIGH);
       delay(125);
       digitalWrite(LED1,LOW);
@@ -25,19 +24,19 @@ void blinkLED(int mode){
       
       delay(500);
 
-      digitalWrite(LED_STATUS,HIGH);
-      delay(500);
-      digitalWrite(LED_STATUS,LOW);
-      delay(500);
-
-      digitalWrite(LED_STATUS,HIGH);
-      delay(500);
-      digitalWrite(LED_STATUS,LOW);
-      delay(500);
-
+      for( int i = 0;i < 3;i++){
+        digitalWrite(LED_STATUS,HIGH);
+        delay(300);
+        digitalWrite(LED_STATUS,LOW);
+        delay(300);
+      }
       
-      break;
-    case BLINK_TIMER_RESET:
+  } else if (mode == BLINK_WAIT_SAKURAIO) {
+      digitalWrite(LED_STATUS, HIGH);
+      delay(500);
+      digitalWrite(LED_STATUS, LOW);
+      delay(500);
+  } else if (mode == BLINK_TIMER_RESET) {
       digitalWrite(LED1,LOW);
       digitalWrite(LED2,LOW);
       digitalWrite(LED3,LOW);
@@ -65,8 +64,7 @@ void blinkLED(int mode){
       digitalWrite(LED5,LOW);
 
 
-      break;
-    case BLINK_NOT_CASTED:
+  } else if (mode == BLINK_NOT_CASTED) {
 
       for(int i = 0;i < 3;i++){
         digitalWrite(LED1,HIGH);
@@ -82,9 +80,8 @@ void blinkLED(int mode){
         digitalWrite(LED5,LOW);
         delay(200);
       }
-    
-      break;
-    case BLINK_CASTED:
+
+  } else if (mode == BLINK_CASTED) {
       
       digitalWrite(LED1,LOW);
       digitalWrite(LED2,LOW);
@@ -102,6 +99,39 @@ void blinkLED(int mode){
           digitalWrite(pinBlinkStory[j],LOW);      
         }
       }
-      break;
+  } else if (mode == BLINK_WAITING_RESPONSE) {
+      for(int i = 0;i < 4;i++){
+        digitalWrite(LED1,HIGH);
+        digitalWrite(LED_STATUS,HIGH);
+        delay(500);
+        digitalWrite(LED1,LOW);
+        digitalWrite(LED_STATUS,LOW);
+        delay(500);
+      }
+  } else if (mode == BLINK_NORMAL_END) {
+      for(int i = 0;i < 10;i++){
+        digitalWrite(LED1,HIGH);
+        delay(100);
+        digitalWrite(LED1,LOW);
+        digitalWrite(LED_STATUS,HIGH);
+        delay(100);
+        digitalWrite(LED_STATUS,LOW);
+      }      
+      int pinBlinkStory[] = {LED1,LED2,LED3,LED4,LED5,LED4,LED3,LED2};
+      int len = sizeof(pinBlinkStory) / sizeof(pinBlinkStory[0]);
+      for(int i = 0;i < 5;i++){
+        for (int j = 0;j < len;j++){
+          digitalWrite(pinBlinkStory[j],HIGH);
+          delay(50);
+          digitalWrite(pinBlinkStory[j],LOW);      
+        }
+      }
+  } else if (mode == BLINK_ERROR_END) {
+      for(int i = 0;i < 5;i++){
+        digitalWrite(LED5,HIGH);
+        delay(3000);
+        digitalWrite(LED5,LOW);
+        delay(1000);
+      }
   }
 }

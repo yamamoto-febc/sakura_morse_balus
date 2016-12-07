@@ -1,7 +1,8 @@
+#include <SakuraIO.h>
 #include "constants.h"
 #include "morse_code.h"
 
-// モールス信号で入力するキーワード
+// モールス信号で入力するキーワード[ l = long , s = short]
 String magicalSpell = "balus"; // [ lsss , sl , slss , ssl , sss]
 const byte spellLen = 5;
 
@@ -19,6 +20,12 @@ int LEDs[] = {LED1,LED2,LED3,LED4,LED5};
 // 文字区切り連続入力防止用
 bool isSpacePushed = false;
 
+// バルス処理中フラグ
+bool isSpellCasting = false;
+
+// さくらの通信モジュール(I2C)
+SakuraIO_I2C sakuraio;
+
 // -------------------------------------------------------------------
 
 void setup(){
@@ -27,6 +34,9 @@ void setup(){
 
   // Arduino各ピンの入出力モード設定
   setupPinMode();
+
+  // さくらの通信モジュールをオンラインに
+  connecToSakuraIoT();
 
   // 初期化完了をシリアル出力でお知らせ
   printInitMessage(magicalSpell);
@@ -37,6 +47,11 @@ void setup(){
 }
 
 void loop(){
+
+  if (isSpellCasting){
+    checkSakuraResponse();
+    return;
+  }
 
   // 無操作になって一定時間経過したら文字の区切りとする
   if (isMorseSilent()){
@@ -101,6 +116,17 @@ void setupPinMode(){
   pinMode(LED5 , OUTPUT);
   pinMode(LED_STATUS , OUTPUT);
   pinMode(SW , INPUT_PULLUP);  
+}
+
+void connecToSakuraIoT(){
+  Serial.print("[Sakura IoT]:Waiting to come online");
+  for(;;){
+    if( (sakuraio.getConnectionStatus() & 0x80) == 0x80 ) break;
+    Serial.print(".");
+    blinkLED(BLINK_WAIT_SAKURAIO);
+  }
+  Serial.println("");
+
 }
 
 void initVariables(){
@@ -175,7 +201,7 @@ void pushMorse(String code){
       
       blinkLED(BLINK_CASTED);
     
-      // TODO [ここにさくらの通信モジュールでのリクエスト処理を書く]
+      sendToSakuraIoT();
     }
   }
 }
@@ -196,5 +222,54 @@ String decodeMorse(String strMorseCode){
     }
   }
   return "missing";
+}
+
+// さくらのIoT Platformへ指示(処理開始コード)を送信する
+void sendToSakuraIoT(){
+  sakuraio.enqueueTx((uint8_t)SAKURA_IOT_CHANNEL, (uint32_t)SAKURA_IOT_START_CODE);
+  uint8_t ret = sakuraio.send();
+  if (ret == CMD_ERROR_NONE) {
+    // エラーがなかったら呼び出し中フラグを立てる
+    isSpellCasting = true;
+  }
+}
+
+// さくらのIoT Platformからの応答をチェック
+void checkSakuraResponse(){
+  uint8_t avail , queued;
+  // 受信キューの状態を問い合わせ(現在利用可能なキュー長、キューの中のデータ数)
+  sakuraio.getRxQueueLength(&avail, &queued);
+
+  // キューにデータがあれば
+  if (queued > 0) {
+    uint8_t channel;    // チャンネル
+    uint8_t type;       // データのタイプ[i,I,l,L,f,d,b]
+    uint8_t values[8];  // データ
+    int64_t offset;     // オフセット
+    
+    uint8_t ret = ret = sakuraio.dequeueRx(&channel, &type, values, &offset);
+    if (ret == CMD_ERROR_NONE) {
+      // エラーがなかったらデータの確認
+      if (channel == SAKURA_IOT_CHANNEL){
+        if (values[0] == SAKURA_IOT_END_CODE){
+
+          // 正常終了コードを受信
+          blinkLED(BLINK_NORMAL_END);
+          isSpellCasting = false;
+          return;
+          
+        }else if (values[0] == SAKURA_IOT_ERROR_CODE){
+          // エラーコードを受信
+          blinkLED(BLINK_ERROR_END);
+          isSpellCasting = false;
+          return;          
+        }
+
+        // 未知の値は無視
+      }
+      // 未知のチャンネルでの受信は無視
+    }
+  }
+  blinkLED(BLINK_WAITING_RESPONSE);
 }
 
