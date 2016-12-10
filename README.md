@@ -2,6 +2,8 @@
 
 [バルス](https://ja.wikipedia.org/wiki/飛行石#.E3.81.8A.E3.81.BE.E3.81.98.E3.81.AA.E3.81.84)をさくらのクラウド上で実装するためのソフトウェアパーツ for Arduino
 
+当プロジェクトの詳細は[はてなブログ](http://febc-yamamoto.hatenablog.com/entry/sacloud-balus)を参照ください。
+
 ## 概要
 
 このプロジェクトは、さくらのクラウド上に「バルス」を実装するためのソフトウェアパーツです。
